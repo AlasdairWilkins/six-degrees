@@ -1,5 +1,7 @@
 # Six Degrees (working title)
 
+* N.B. This Readme was prepared by Claude AI *
+
 A web game based on Six Degrees of Kevin Bacon: connect a given actor to Kevin
 Bacon in six steps or fewer by chaining shared movie credits.
 
