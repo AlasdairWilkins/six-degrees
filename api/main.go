@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -9,19 +9,20 @@ import (
 )
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "OK")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func main() {
 	godotenv.Load()
 	tmdbClient := NewTmdbClient()
 
-	http.HandleFunc("/tmdb/search/person", tmdbClient.Handler)
-	http.HandleFunc("/tmdb/search/movie", tmdbClient.Handler)
-	http.HandleFunc("/tmdb/person/{person_id}/movie_credits", tmdbClient.Handler)
-	http.HandleFunc("/tmdb/movie/{id}/credits", tmdbClient.Handler)
+	HandleFuncWithCors("/api/tmdb/search/person", tmdbClient.Handler)
+	HandleFuncWithCors("/api/tmdb/search/movie", tmdbClient.Handler)
+	HandleFuncWithCors("/api/tmdb/person/{person_id}/movie_credits", tmdbClient.Handler)
+	HandleFuncWithCors("/api/tmdb/movie/{id}/credits", tmdbClient.Handler)
 
-	http.HandleFunc("/health", healthHandler)
+	HandleFuncWithCors("/health", healthHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

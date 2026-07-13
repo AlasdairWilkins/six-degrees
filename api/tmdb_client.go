@@ -68,7 +68,7 @@ func (tmdbClient *TmdbClient) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := r.URL.Path[len("/tmdb/"):] // Extract the URL path after "/tmdb/"
+	url := r.URL.Path[len("/api/tmdb/"):] // Extract the URL path after "/api/tmdb/"
 
 	query := r.URL.RawQuery
 
