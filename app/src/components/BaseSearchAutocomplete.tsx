@@ -35,7 +35,7 @@ export default function BaseSearchAutocomplete<SearchType extends Movie | Person
         setQuery('');
         setSelection(selection);
         onSelectProp && onSelectProp(selection);
-    }, []);
+    }, [onSelectProp, reset]);
 
 
     if (selection) {

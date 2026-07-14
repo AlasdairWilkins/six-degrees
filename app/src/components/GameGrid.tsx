@@ -1,0 +1,113 @@
+import {useCallback, useEffect, useMemo, useState} from 'react'
+import useTmdbSearch from '../hooks/useTmdbSearch'
+import ChainRow from './ChainRow';
+
+import fetchHandler from '../api/fetchHandler';
+import type {Movie, Person} from '../types/tmdb'
+
+function assertNonNull<T>(value: T | null, message: string): asserts value is T {
+    if (value === null) {
+        throw new Error(message);
+    }
+}
+
+const targetActorId = 4724 // Kevin Bacon's TMDB id
+
+export default () => {
+    const [initialActor, setInitialActor] = useState<Person | null>(null)
+
+    const {results} = useTmdbSearch<Person>({endpoint: 'person', query: 'Tom Cruise'})
+
+    const [chains, setChains] = useState<[Movie | null, Person | null][]>([[null, null]]);
+
+    useEffect(() => {
+        if (!results.length) {
+            return
+        }
+
+        setInitialActor(results[0]);
+    }, [results])
+
+    const onSubmit = useCallback(() => {
+        type Payload = {
+            links: {id: number, type: 'person' | 'movie'}[];
+            initialActorId: number | undefined;
+            targetActorId: number;
+        }
+
+        const submitHandler = async (payload: Payload) => {
+            const response = await fetchHandler(
+                '/api/validate-chain', 
+                {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}
+            );
+            const {data} = await response.json();
+            console.log(data);
+        }
+        const links: Payload['links'] = [initialActor, ...chains.flat()]
+            .map((entry, index) => {
+                assertNonNull(entry, 'Cannot submit any chain with missing entries');
+
+                return {
+                    id: entry.id,
+                    type: index % 2 === 0 ? 'person' : 'movie'
+                }
+            });
+
+        const payload = {
+            links,
+            initialActorId: initialActor?.id,
+            targetActorId
+        }
+
+        submitHandler(payload);
+    }, [initialActor, chains])
+
+    const updateChain = useCallback((index: number, chain: [Movie | null, Person | null]) => {
+        const start = chains.slice(0, index);
+        const finish = chains.slice(index + 1);
+        setChains([...start, chain, ...finish])
+    }, [chains])
+
+    const insertChain = useCallback((index: number, chain: [Movie | null, Person | null] = [null, null]) => {
+        const start = chains.slice(0, index);
+        const finish = chains.slice(index);
+        setChains([...start, chain, ...finish])
+    }, [chains])
+
+    const removeChain = useCallback((index: number) => {
+        const start = chains.slice(0, index);
+        const finish = chains.slice(index + 1);
+        setChains([...start, ...finish])
+    }, [chains])
+    
+    const canSubmit = useMemo(() => {
+        return chains.flat().every(value => !!value) && chains[chains.length - 1][1]?.id === targetActorId
+    }, [chains])
+
+    if (!initialActor) {
+        return (
+            <div>Loading game...</div>
+        )
+    }
+
+    return (
+        <div>
+            {chains.map((chain, index) => {
+                const fromActor = index === 0 ? initialActor : null
+                return (
+                    <ChainRow 
+                        key={index} 
+                        chain={chain} 
+                        updateChains={(chain) => updateChain(index, chain)} 
+                        targetActorId={targetActorId}
+                        {...fromActor ? {fromActor} : {}} 
+                        {...chains.length < 6 ? {addRow: () => insertChain(index + 1)} : {}}
+                        {...chains.length > 1 ? {removeRow: () => removeChain(index)} : {}}
+                    />
+                )
+            })}
+            <button disabled={!canSubmit} onClick={onSubmit}>Submit</button>
+
+        </div>
+    )
+}

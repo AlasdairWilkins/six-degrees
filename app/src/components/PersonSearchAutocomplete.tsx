@@ -10,11 +10,11 @@ type Props = {
 }
 
 export default ({onSelect}: Props) => {
-
     const [query, setQuery] = useState('');    
     const { reset, results } = useTmdbSearch<Person>({ endpoint: 'person', query })
 
-    const [primaryResults, 
+    const [
+        primaryResults, 
         // nonActorResults, obscureResults
     ] = useMemo(() => {
         const primaryResults = [], nonActorResults = [], obscureResults = [];

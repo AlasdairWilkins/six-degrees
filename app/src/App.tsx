@@ -1,10 +1,9 @@
-import useTmdbPersonSearch from './hooks/useTmdbSearch'
-import ChainRow from './components/ChainRow';
+import GameGrid from './components/GameGrid'
 
 import './App.css'
 
 function App() {
-  useTmdbPersonSearch({query: 'Kevin Bacon'});
+  // useTmdbSearch({query: 'Kevin Bacon'});
 
   return (
     <>
@@ -17,7 +16,7 @@ function App() {
         </div>
       </section>
 
-      <ChainRow targetActorId={4724}/>
+      <GameGrid />
 
       <div className="ticks"></div>
       <section id="spacer"></section>

@@ -17,6 +17,7 @@ func main() {
 	godotenv.Load()
 	tmdbClient := NewTmdbClient()
 
+	// HandleFuncWithCors("/api/chain", )
 	HandleFuncWithCors("/api/tmdb/search/person", tmdbClient.Handler)
 	HandleFuncWithCors("/api/tmdb/search/movie", tmdbClient.Handler)
 	HandleFuncWithCors("/api/tmdb/person/{person_id}/movie_credits", tmdbClient.Handler)

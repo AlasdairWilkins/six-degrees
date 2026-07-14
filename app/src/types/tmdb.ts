@@ -11,11 +11,11 @@ type TVKnownFor = {
 type KnownFor = MovieKnownFor | TVKnownFor;
 
 export type Person = {
-  id: number;
-  name: string;
-  known_for: KnownFor[];
-  known_for_department: string;
-  popularity: number
+    id: number;
+    name: string;
+    known_for: KnownFor[];
+    known_for_department: string;
+    popularity: number
 };
 
 export type Movie = {
