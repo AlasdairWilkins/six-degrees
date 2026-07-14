@@ -40,24 +40,50 @@ func NewTmdbClient() *TmdbClient {
 	}
 }
 
-func (tmdbClient *TmdbClient) Relay(w http.ResponseWriter, method Method, url string) error {
+type TmdbGetResponse struct {
+	Body       []byte
+	StatusCode int
+	Header     http.Header
+}
+
+func (tmdbClient *TmdbClient) Get(w http.ResponseWriter, method Method, url string) (TmdbGetResponse, error) {
+	if method != GET {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return TmdbGetResponse{}, nil
+	}
+
 	req, reqErr := http.NewRequest(string(method), strings.Join([]string{tmdbClient.apiUrl, url}, "/"), nil)
 	if reqErr != nil {
-		return reqErr
+		return TmdbGetResponse{}, reqErr
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tmdbClient.readToken)
 	res, resErr := tmdbClient.httpClient.Do(req)
 	if resErr != nil {
-		return resErr
+		return TmdbGetResponse{}, resErr
 	}
 	defer res.Body.Close()
 
-	w.Header().Set("Content-Type", res.Header.Get("Content-Type"))
-	w.WriteHeader(res.StatusCode)
-	_, err := io.Copy(w, res.Body)
-	return err
+	bodyBytes, readErr := io.ReadAll(res.Body)
+	if readErr != nil {
+		return TmdbGetResponse{}, readErr
+	}
+
+	return TmdbGetResponse{Body: bodyBytes, StatusCode: res.StatusCode, Header: res.Header}, nil
+}
+
+func (tmdbClient *TmdbClient) Relay(w http.ResponseWriter, method Method, url string) error {
+	resp, respErr := tmdbClient.Get(w, method, url)
+
+	if respErr != nil {
+		return respErr
+	}
+
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.WriteHeader(resp.StatusCode)
+	_, writeErr := w.Write(resp.Body)
+	return writeErr
 }
 
 func (tmdbClient *TmdbClient) Handler(w http.ResponseWriter, r *http.Request) {
