@@ -11,10 +11,6 @@ import (
 
 type Method string
 
-const (
-	GET Method = "GET"
-)
-
 type TmdbClient struct {
 	apiUrl     string
 	readToken  string
@@ -46,13 +42,8 @@ type TmdbGetResponse struct {
 	Header     http.Header
 }
 
-func (tmdbClient *TmdbClient) Get(w http.ResponseWriter, method Method, url string) (TmdbGetResponse, error) {
-	if method != GET {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return TmdbGetResponse{}, nil
-	}
-
-	req, reqErr := http.NewRequest(string(method), strings.Join([]string{tmdbClient.apiUrl, url}, "/"), nil)
+func (tmdbClient *TmdbClient) Get(url string) (TmdbGetResponse, error) {
+	req, reqErr := http.NewRequest(http.MethodGet, strings.Join([]string{tmdbClient.apiUrl, url}, "/"), nil)
 	if reqErr != nil {
 		return TmdbGetResponse{}, reqErr
 	}
@@ -74,7 +65,7 @@ func (tmdbClient *TmdbClient) Get(w http.ResponseWriter, method Method, url stri
 }
 
 func (tmdbClient *TmdbClient) Relay(w http.ResponseWriter, method Method, url string) error {
-	resp, respErr := tmdbClient.Get(w, method, url)
+	resp, respErr := tmdbClient.Get(url)
 
 	if respErr != nil {
 		return respErr
@@ -89,7 +80,7 @@ func (tmdbClient *TmdbClient) Relay(w http.ResponseWriter, method Method, url st
 func (tmdbClient *TmdbClient) Handler(w http.ResponseWriter, r *http.Request) {
 	method := Method(r.Method)
 
-	if method != GET {
+	if method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -98,7 +89,7 @@ func (tmdbClient *TmdbClient) Handler(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.RawQuery
 
-	if err := tmdbClient.Relay(w, GET, strings.Join([]string{url, query}, "?")); err != nil {
+	if err := tmdbClient.Relay(w, http.MethodGet, strings.Join([]string{url, query}, "?")); err != nil {
 		log.Printf("tmdb relay failed: %v", err)
 	}
 

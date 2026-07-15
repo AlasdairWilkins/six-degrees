@@ -4,12 +4,9 @@ import useTmdbSearch from "../hooks/useTmdbSearch";
 import PersonSearchEntry from "./PersonSearchEntry";
 import BaseSearchAutocomplete from "./BaseSearchAutocomplete";
 import type {Person} from '../types/tmdb';
+import type { SearchAutocompleteProps } from "../types/sharedProps";
 
-type Props = {
-    onSelect?: (person: Person | null) => void
-}
-
-export default ({onSelect}: Props) => {
+export default (baseAutoCompleteProps: SearchAutocompleteProps<Person>) => {
     const [query, setQuery] = useState('');    
     const { reset, results } = useTmdbSearch<Person>({ endpoint: 'person', query })
 
@@ -40,11 +37,11 @@ export default ({onSelect}: Props) => {
 
     return (
         <BaseSearchAutocomplete
+            {...baseAutoCompleteProps}
             query={query}
             setQuery={setQuery}
             reset={reset}
             results={primaryResults}
-            onSelect={onSelect}
             formatSelection={formatSelection}
             searchEntryComponent={PersonSearchEntry}
         />

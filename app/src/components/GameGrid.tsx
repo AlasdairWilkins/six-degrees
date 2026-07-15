@@ -4,6 +4,7 @@ import ChainRow from './ChainRow';
 
 import fetchHandler from '../api/fetchHandler';
 import type {Movie, Person} from '../types/tmdb'
+import type { SubmissionResponse } from '../types/responses';
 
 function assertNonNull<T>(value: T | null, message: string): asserts value is T {
     if (value === null) {
@@ -19,6 +20,8 @@ export default () => {
     const {results} = useTmdbSearch<Person>({endpoint: 'person', query: 'Tom Cruise'})
 
     const [chains, setChains] = useState<[Movie | null, Person | null][]>([[null, null]]);
+    const [submissionResult, setSubmissionResult] = useState<SubmissionResponse | null>(null)
+    const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
     useEffect(() => {
         if (!results.length) {
@@ -29,6 +32,8 @@ export default () => {
     }, [results])
 
     const onSubmit = useCallback(() => {
+        setIsSubmitted(true);
+
         type Payload = {
             links: {id: number, type: 'person' | 'movie'}[];
             initialActorId: number | undefined;
@@ -40,8 +45,8 @@ export default () => {
                 '/api/validate-chain', 
                 {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}
             );
-            const {data} = await response.json();
-            console.log(data);
+            const result: SubmissionResponse = await response.json();
+            setSubmissionResult(result)
         }
         const links: Payload['links'] = [initialActor, ...chains.flat()]
             .map((entry, index) => {
@@ -96,8 +101,10 @@ export default () => {
                 const fromActor = index === 0 ? initialActor : null
                 return (
                     <ChainRow 
+                        isSubmitted={isSubmitted}
                         key={index} 
                         chain={chain} 
+                        invalidLinks={submissionResult?.invalidLinks ?? []}
                         updateChains={(chain) => updateChain(index, chain)} 
                         targetActorId={targetActorId}
                         {...fromActor ? {fromActor} : {}} 
@@ -107,6 +114,13 @@ export default () => {
                 )
             })}
             <button disabled={!canSubmit} onClick={onSubmit}>Submit</button>
+            {
+                submissionResult && (
+                    <div>
+                        {submissionResult.isValid ? 'Correct!' : 'Sorry, that isn\'t a valid link.'}
+                    </div>
+                )
+            }
 
         </div>
     )

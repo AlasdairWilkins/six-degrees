@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import type {Movie, Person} from '../types/tmdb';
 import type { SearchEntryProps } from "../types/sharedProps";
@@ -6,13 +6,15 @@ import type { SearchEntryProps } from "../types/sharedProps";
 import './BaseSearchAutocomplete.css';
 
 type Props<SearchType> = {
-    query: string,
+    disabled: boolean;
+    query: string;
     setQuery: (query: string) => void;
     reset: () => void;
     results: SearchType[];
     onSelect?: (selection: SearchType | null) => void
     formatSelection: (selection: SearchType) => string
     searchEntryComponent: React.ComponentType<SearchEntryProps<SearchType>>;
+    value: SearchType | null;
 }
 
 export default function BaseSearchAutocomplete<SearchType extends Movie | Person> ({
@@ -23,25 +25,28 @@ export default function BaseSearchAutocomplete<SearchType extends Movie | Person
     results,
     formatSelection,
     searchEntryComponent: SearchEntry,
+    disabled,
+    value,
 }: Props<SearchType>) {
     const onChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setQuery(event.target.value)
     }, []);
 
-    const [selection, setSelection] = useState<SearchType | null>(null);
-
     const onSelect = useCallback((selection: SearchType | null) => {
         reset();
         setQuery('');
-        setSelection(selection);
         onSelectProp && onSelectProp(selection);
     }, [onSelectProp, reset]);
 
-
-    if (selection) {
-        return <div><span>{formatSelection(selection)}</span>{' '}<button onClick={() => onSelect(null)}>X</button></div>
+    if (value) {
+        return <div>
+            <span>{formatSelection(value)}</span>
+            {!disabled && <>
+                {' '}
+                <button onClick={() => onSelect(null)}>X</button>
+            </>}
+        </div>
     }
-
 
     return (
         <div className='person-search'>
