@@ -1,10 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
+import type { Dispatch, SetStateAction } from 'react';
 import useTmdbSearch from '../hooks/useTmdbSearch'
 import ChainRow from './ChainRow';
 
 import fetchHandler from '../api/fetchHandler';
 import type {Movie, Person} from '../types/tmdb'
 import type { SubmissionResponse } from '../types/responses';
+import type { CompletedChain } from '../types/sharedProps';
 
 function assertNonNull<T>(value: T | null, message: string): asserts value is T {
     if (value === null) {
@@ -16,10 +18,16 @@ const targetActorId = 4724 // Kevin Bacon's TMDB id
 
 type Chain = [Movie | null, Person | null];
 
-export default () => {
+type Props = {
+    initialActorName: string;
+    setCompletedChains: Dispatch<SetStateAction<CompletedChain[]>>
+    reset: () => void;
+}
+
+export default ({initialActorName, setCompletedChains, reset}: Props) => {
     const [initialActor, setInitialActor] = useState<Person | null>(null)
 
-    const {results} = useTmdbSearch<Person>({endpoint: 'person', query: 'Tom Cruise'})
+    const {results} = useTmdbSearch<Person>({endpoint: 'person', query: initialActorName})
 
     const [chains, setChains] = useState<Chain[]>([[null, null]]);
     const [submissionResult, setSubmissionResult] = useState<SubmissionResponse | null>(null)
@@ -97,6 +105,22 @@ export default () => {
         submitHandler(payload);
     }, [initialActor, chains])
 
+    const onPlayAgain = useCallback(() => {
+        assertNonNull(initialActor, 'Cannot complete a chain without an initial actor');
+
+                const completedChain: CompletedChain = [
+                    initialActor,
+                    ...chains.map((chain): [Movie, Person] => {
+                        const [movie, person] = chain;
+                        assertNonNull(movie, 'Cannot complete a chain with a missing movie');
+                        assertNonNull(person, 'Cannot complete a chain with a missing person');
+                        return [movie, person];
+                    })
+                ];
+                
+                setCompletedChains(prev => [...prev, completedChain]);
+    }, [initialActor, chains])
+
     const updateChain = useCallback((index: number, chain: Chain) => {
         const currentChain = chains[index];
         updateUsedIds(currentChain, chain);
@@ -153,11 +177,23 @@ export default () => {
                     />
                 )
             })}
-            <button disabled={!canSubmit} onClick={onSubmit}>Submit</button>
+            {!isSubmitted && <button disabled={!canSubmit} onClick={onSubmit}>Submit</button>}
             {
                 submissionResult && (
                     <div>
-                        {submissionResult.isValid ? 'Correct!' : 'Sorry, that isn\'t a valid link.'}
+                        {submissionResult.isValid ? (
+                            <>
+                                <p>Correct!</p>
+                                <button onClick={onPlayAgain}>Play again</button>
+                                
+                            </>
+                            ) : (
+                            <>
+                                <p>Game over!</p>
+                                <button onClick={reset}>New game</button>
+                            </>
+                            )
+                        }
                     </div>
                 )
             }

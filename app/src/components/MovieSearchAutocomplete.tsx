@@ -38,6 +38,7 @@ export default (baseAutoCompleteProps: SearchAutocompleteProps<Movie>) => {
             reset={reset}
             results={primaryResults}
             formatSelection={formatSelection}
+            // formatEntry={formatEntry}
             searchEntryComponent={MovieSearchEntry}
         />
     )

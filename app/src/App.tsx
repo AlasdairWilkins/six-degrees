@@ -1,9 +1,11 @@
-import GameGrid from './components/GameGrid'
+import {useState} from 'react'
+
+import Game from './components/Game'
 
 import './App.css'
 
 function App() {
-  // useTmdbSearch({query: 'Kevin Bacon'});
+  const [gameUuid, setGameUuid] = useState<string>(crypto.randomUUID());
 
   return (
     <>
@@ -16,7 +18,7 @@ function App() {
         </div>
       </section>
 
-      <GameGrid />
+      <Game key={gameUuid} reset={() => setGameUuid(crypto.randomUUID())}/>
 
       <div className="ticks"></div>
       <section id="spacer"></section>

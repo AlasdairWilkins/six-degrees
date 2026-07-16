@@ -1,3 +1,5 @@
+import type {Movie, Person} from '../types/tmdb'
+
 export type SearchEntryProps<SearchType> = {
     disabled: boolean;
     result: SearchType;
@@ -10,3 +12,5 @@ export type SearchAutocompleteProps<SearchType> = {
     usedIds: Set<number>;
     onSelect?: (selection: SearchType | null) => void;
 }
+
+export type CompletedChain = [Person, ...[Movie, Person][]]
