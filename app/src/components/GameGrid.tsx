@@ -14,14 +14,43 @@ function assertNonNull<T>(value: T | null, message: string): asserts value is T 
 
 const targetActorId = 4724 // Kevin Bacon's TMDB id
 
+type Chain = [Movie | null, Person | null];
+
 export default () => {
     const [initialActor, setInitialActor] = useState<Person | null>(null)
 
     const {results} = useTmdbSearch<Person>({endpoint: 'person', query: 'Tom Cruise'})
 
-    const [chains, setChains] = useState<[Movie | null, Person | null][]>([[null, null]]);
+    const [chains, setChains] = useState<Chain[]>([[null, null]]);
     const [submissionResult, setSubmissionResult] = useState<SubmissionResponse | null>(null)
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+
+    const [usedMovieIds, setUsedMovieIds] = useState<Set<number>>(new Set())
+    const [usedPersonIds, setUsedPersonIds] = useState<Set<number>>(new Set())
+
+    const handleUsedIds = useCallback((method: 'add' | 'delete', [movie, person]: Chain) => {
+        if (movie?.id) {
+            setUsedMovieIds(prev => {
+                const updated = new Set(prev);
+                updated[method](movie.id);
+                return updated;
+            })
+        }
+        if (person?.id) {
+            setUsedPersonIds(prev => {
+                const updated = new Set(prev);
+                updated[method](person.id);
+                return updated;
+            })
+        }
+    }, []);
+
+    const insertUsedIds = useCallback((chain: Chain) => handleUsedIds('add', chain), [handleUsedIds]);
+    const removeUsedIds = useCallback((chain: Chain) => handleUsedIds('delete', chain), [handleUsedIds]);
+    const updateUsedIds = useCallback((oldChain: Chain, newChain: Chain) => {
+        removeUsedIds(oldChain);
+        insertUsedIds(newChain);
+    }, [removeUsedIds, insertUsedIds]);
 
     useEffect(() => {
         if (!results.length) {
@@ -29,6 +58,7 @@ export default () => {
         }
 
         setInitialActor(results[0]);
+        setUsedPersonIds(new Set([results[0].id]))
     }, [results])
 
     const onSubmit = useCallback(() => {
@@ -67,19 +97,27 @@ export default () => {
         submitHandler(payload);
     }, [initialActor, chains])
 
-    const updateChain = useCallback((index: number, chain: [Movie | null, Person | null]) => {
+    const updateChain = useCallback((index: number, chain: Chain) => {
+        const currentChain = chains[index];
+        updateUsedIds(currentChain, chain);
+
         const start = chains.slice(0, index);
         const finish = chains.slice(index + 1);
         setChains([...start, chain, ...finish])
     }, [chains])
 
-    const insertChain = useCallback((index: number, chain: [Movie | null, Person | null] = [null, null]) => {
+    const insertChain = useCallback((index: number, chain: Chain = [null, null]) => {
+        insertUsedIds(chain);
+
         const start = chains.slice(0, index);
         const finish = chains.slice(index);
         setChains([...start, chain, ...finish])
     }, [chains])
 
     const removeChain = useCallback((index: number) => {
+        const chain = chains[index];
+        removeUsedIds(chain);
+
         const start = chains.slice(0, index);
         const finish = chains.slice(index + 1);
         setChains([...start, ...finish])
@@ -107,6 +145,8 @@ export default () => {
                         invalidLinks={submissionResult?.invalidLinks ?? []}
                         updateChains={(chain) => updateChain(index, chain)} 
                         targetActorId={targetActorId}
+                        usedMovieIds={usedMovieIds}
+                        usedPersonIds={usedPersonIds}
                         {...fromActor ? {fromActor} : {}} 
                         {...chains.length < 6 ? {addRow: () => insertChain(index + 1)} : {}}
                         {...chains.length > 1 ? {removeRow: () => removeChain(index)} : {}}

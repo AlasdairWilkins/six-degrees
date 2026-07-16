@@ -15,6 +15,7 @@ type Props<SearchType> = {
     formatSelection: (selection: SearchType) => string
     searchEntryComponent: React.ComponentType<SearchEntryProps<SearchType>>;
     value: SearchType | null;
+    usedIds: Set<number>;
 }
 
 export default function BaseSearchAutocomplete<SearchType extends Movie | Person> ({
@@ -27,6 +28,7 @@ export default function BaseSearchAutocomplete<SearchType extends Movie | Person
     searchEntryComponent: SearchEntry,
     disabled,
     value,
+    usedIds,
 }: Props<SearchType>) {
     const onChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setQuery(event.target.value)
@@ -57,7 +59,7 @@ export default function BaseSearchAutocomplete<SearchType extends Movie | Person
             <ul>
                 {
                 results.map(result => (
-                    <SearchEntry key={result.id} onSelect={onSelect} result={result} />
+                    <SearchEntry key={result.id} disabled={usedIds.has(result.id)} onSelect={onSelect} result={result} />
                 )
                 )
             }

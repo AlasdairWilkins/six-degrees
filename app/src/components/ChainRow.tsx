@@ -18,9 +18,11 @@ type Props = {
     fromActor?: Person;
     targetActorId: number;
     invalidLinks: InvalidLink[];
+    usedMovieIds: Set<number>;
+    usedPersonIds: Set<number>;
 }
 
-export default ({addRow, chain, updateChains, isSubmitted, fromActor, invalidLinks, removeRow, targetActorId}: Props) => {
+export default ({addRow, chain, updateChains, isSubmitted, fromActor, invalidLinks, removeRow, targetActorId, usedMovieIds, usedPersonIds}: Props) => {
     const [movie, person] = chain;
 
     const invalidClasses = useMemo(() => {
@@ -66,9 +68,9 @@ export default ({addRow, chain, updateChains, isSubmitted, fromActor, invalidLin
     return (
         <div className='chain-row'>
             <span>{fromActor ? fromActor.name : 'Who'} was in</span>
-            <span><MovieSearchAutocomplete value={movie} disabled={isSubmitted} onSelect={(movie) => updateChain({movie})} /></span>
+            <span><MovieSearchAutocomplete value={movie} disabled={isSubmitted} usedIds={usedMovieIds} onSelect={(movie) => updateChain({movie})} /></span>
             <span>with</span>
-            <PersonSearchAutocomplete value={person} disabled={isSubmitted} onSelect={(person) => updateChain({person})} />
+            <PersonSearchAutocomplete value={person} disabled={isSubmitted} usedIds={usedPersonIds} onSelect={(person) => updateChain({person})} />
             {
                 !isSubmitted && (
                     <>

@@ -3,7 +3,7 @@ import {useMemo} from 'react'
 import type {Person} from '../types/tmdb';
 import type { SearchEntryProps } from '../types/sharedProps';
 
-export default ({onSelect, result: person}: SearchEntryProps<Person>) => {
+export default ({disabled, onSelect, result: person}: SearchEntryProps<Person>) => {
     const knownFor = useMemo(() => {
         const knownFor = person.known_for.find(knownFor => knownFor.media_type === 'movie' || knownFor.media_type === 'tv');
 
@@ -15,7 +15,7 @@ export default ({onSelect, result: person}: SearchEntryProps<Person>) => {
     }, [person.known_for])
 
     return (
-        <li onClick={() => onSelect(person)}>
+        <li onClick={() => disabled ? console.log('Disabled') : onSelect(person)}>
             {person.name} ({knownFor})
         </li>
     )

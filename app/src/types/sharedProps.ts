@@ -1,10 +1,12 @@
 export type SearchEntryProps<SearchType> = {
+    disabled: boolean;
     result: SearchType;
     onSelect: (selection: SearchType | null) => void;
 };
 
 export type SearchAutocompleteProps<SearchType> = {
-    value: SearchType | null
+    value: SearchType | null;
     disabled: boolean;
-    onSelect?: (selection: SearchType | null) => void
+    usedIds: Set<number>;
+    onSelect?: (selection: SearchType | null) => void;
 }
