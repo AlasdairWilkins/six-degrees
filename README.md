@@ -50,46 +50,76 @@ new language/technology on the backend.
 
 ### Starting actor selection
 
-- Starting actor is drawn from a **static seed list of acting Oscar
-  nominees** (Best Actor/Actress/Supporting Actor/Supporting Actress) from
-  the last 50 years — roughly 900+ unique people after deduping repeat
-  nominees. Built once from a one-time source (e.g. Wikipedia's nominee
-  tables), not a live dependency.
-- MVP filter, built now rather than deferred: exclude any nominee below a
-  minimum TMDB-credited-filmography size when building the seed list. It's
-  a cheap proxy against the edge case of a nominee whose career is siloed in
-  a single national/foreign cinema with little-to-no Anglophone crossover,
-  who might have a genuinely very long or unfindable path to Bacon. Treated
-  as basic functionality to have from the start, with room to expand later
-  into real connectivity/path-length verification if the simple filter
-  proves too blunt.
-- Working assumption: in practice, virtually all nominees have *some* valid
-  path to Bacon within 6 steps, given the well-documented "small world"
-  structure of the film collaboration graph and Bacon's unusually high
-  connectivity across genres and decades. Remaining hard cases are treated
-  as intentional difficulty variance, consistent with the scarcity design
-  above — not something to eliminate.
+- **Superseded the original Oscar-nominee seed list** (Best
+  Actor/Actress/Supporting Actor/Supporting Actress, last 50 years) in favor
+  of a **Wikidata SPARQL–derived seed list**. The nominee-only list was too
+  narrow a proxy for "broadly recognized" — it captures critical acclaim,
+  not fame, and misses hugely recognizable actors (blockbuster/franchise
+  stars especially) who were never nominated. TMDB's own "popular people"
+  endpoint was considered and rejected as the alternative: it's a
+  current-velocity signal (recent views, watchlist adds, release activity),
+  which would skew the pool toward whoever is trending this month and drop
+  durably-famous-but-currently-quiet actors — the opposite of what a stable
+  seed list needs.
+- Candidate query, run once against Wikidata's public SPARQL endpoint (not a
+  live runtime dependency — same "built once" philosophy as the original
+  plan, just a different one-time source):
+  - Filter to humans with occupation "actor" **and an English Wikipedia
+    sitelink** (presence check, not a ranking signal — this is the
+    Anglophone-recognizability gate).
+  - Rank/threshold by **total sitelink count across all Wikipedia
+    languages** (a durable, cumulative notability signal, not TMDB's
+    live/trending `popularity`).
+  - Pull the **TMDB person ID directly via Wikidata's `P4985` property**
+    where present, rather than matching by name afterward — sidesteps
+    fragile fuzzy-matching (same names, diacritics, disambiguation)
+    entirely. Candidates without a mapped TMDB ID are excluded; for anyone
+    famous enough to clear the sitelink threshold this is a small loss.
+- **Anglophone filmography-crossover filter**, replacing the old "minimum
+  filmography size" heuristic (which was too blunt — a prolific but
+  entirely siloed non-English-language filmography would have passed it).
+  Citizenship/nationality-based filtering was considered and deliberately
+  **rejected** as the mechanism for this, on both principled grounds
+  (filtering people by identity) and accuracy grounds (an actor's
+  nationality isn't actually what determines whether their work connects
+  into the graph this game is built on — their filmography is). Concretely:
+  for each SPARQL candidate, fetch TMDB's `/person/{id}/movie_credits` (one
+  call per person — the endpoint returns a full filmography in a single
+  response) and require some minimum count of `original_language == "en"`
+  credits. This targets actual connectivity to the Hollywood/English-language
+  credit graph directly, so e.g. a Bollywood star with genuine English-language
+  crossover work correctly passes, while one without doesn't — regardless of
+  either actor's nationality.
+  - Implementation note: one-time/offline Go script, not a request-time
+    dependency. Given the volume (low thousands of candidates at most, each
+    needing one credits lookup), a bounded-concurrency worker pool
+    (goroutines + a small fixed in-flight limit, e.g. 5–10) comfortably
+    clears the batch without bursting hard enough to risk throttling.
+    Fetched results should be cached to disk keyed by TMDB ID as the script
+    runs, so re-runs (tuning thresholds, resuming after a crash) don't
+    re-fetch already-processed candidates.
+- Working assumption unchanged from the original design: in practice,
+  virtually all candidates clearing the above filters have *some* valid path
+  to Bacon within 6 steps, given the well-documented "small world" structure
+  of the film collaboration graph and Bacon's unusually high connectivity
+  across genres and decades. Remaining hard cases are treated as intentional
+  difficulty variance, consistent with the scarcity design above — not
+  something to eliminate.
 - Search queries **TMDB live**, with local caching as a side effect, rather
   than only searching a subset already cached from prior sessions —
   otherwise a real-but-hard path could exist yet be unenterable simply
   because no one had searched that intermediate movie/actor yet.
-- Selection is **weighted, not uniform**, to avoid surfacing nominees a
-  modern player is unlikely to recognize (e.g. a 1978 nominee vs. a 2015
-  one) — but a hard year cutoff was rejected for the same reason a fixed
-  obscurity-score cutoff was rejected elsewhere: it doesn't age well.
-  Planning to implement **both** candidate signals and evaluate in practice
-  rather than picking one upfront:
-  - **Percentile rank of the person's TMDB `popularity`** within the seed
-    list (not the raw value, to avoid a handful of currently-trending
-    nominees dominating selection, and to avoid exposure to popularity's
-    day-to-day drift).
-  - **Year-of-nomination recency decay** — simpler, fully static once the
-    seed list is built, doesn't depend on a live/changing signal, but a
-    cruder proxy (can't tell a durably-famous-but-currently-quiet veteran
-    from a truly forgotten one).
-  - The two signals will likely be combined into one selection weight;
-    exact blend is a tuning detail to work out once both are implemented
-    and there's something to actually observe.
+- Selection is still intended to be **weighted, not uniform**, to avoid
+  surfacing candidates a modern player is unlikely to recognize — but the
+  original two-signal design (TMDB popularity percentile + year-of-nomination
+  recency decay) was built around the nominee list's structure and needs
+  revisiting now that the base source is sitelink-ranked rather than
+  nomination-year-ranked. Sitelink count is already a fairly durable
+  proxy on its own (it doesn't have TMDB `popularity`'s day-to-day-drift
+  problem, which was the main thing the old two-signal blend was working
+  around), so the weighting scheme may end up simpler than originally
+  planned — exact approach still open, to be worked out once there's a
+  real candidate list to evaluate against.
 
 ### Stretch features (post-MVP / V2)
 

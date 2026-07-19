@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import qs from "qs";
 
-import fetchHandler from "../api/fetchHandler"
-import type {Movie, Person} from '../types/tmdb';
+import fetchHandler from "../api/fetchHandler";
+import type { Movie, Person } from "../types/tmdb";
 
 interface SearchTypeMapping {
   person: Person;
@@ -10,47 +10,53 @@ interface SearchTypeMapping {
 }
 
 type Params<SearchType> = {
-    query?: string,
-    endpoint:{
-        [K in keyof SearchTypeMapping]: SearchType extends SearchTypeMapping[K] ? K : never;
-    }[keyof SearchTypeMapping];
-}
+  query?: string;
+  endpoint: {
+    [K in keyof SearchTypeMapping]: SearchType extends SearchTypeMapping[K]
+      ? K
+      : never;
+  }[keyof SearchTypeMapping];
+};
 
 type Return<SearchType> = {
-    fetch: (query: string) => void, 
-    reset: () => void, 
-    results: SearchType[]
-}
+  fetch: (query: string) => void;
+  reset: () => void;
+  results: SearchType[];
+};
 
-export default function useTmdbSearch<SearchType extends Movie | Person> ({ endpoint, query }: Params<SearchType>): Return<SearchType>  {
-    const [results, setResults] = useState<SearchType[]>([]);
+export default function useTmdbSearch<SearchType extends Movie | Person>({
+  endpoint,
+  query,
+}: Params<SearchType>): Return<SearchType> {
+  const [results, setResults] = useState<SearchType[]>([]);
 
-    const reset = useCallback(() => {
-        setResults([])
-    }, []);
+  const reset = useCallback(() => {
+    setResults([]);
+  }, []);
 
-    const fetch = useCallback((query: string) => {
-        const _fetch = async (query: string) => {
-            try {
-                const response = await fetchHandler(`/api/tmdb/search/${endpoint}?${qs.stringify({ query })}`)
-                 const data = await response.json();
-                setResults(data.results ?? []);
+  const fetch = useCallback((query: string) => {
+    const _fetch = async (query: string) => {
+      try {
+        const response = await fetchHandler(
+          `/api/tmdb/search/${endpoint}?${qs.stringify({ query })}`,
+        );
+        const data = await response.json();
+        setResults(data.results ?? []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
-            } catch (error) {
-                console.error(error)
-            }
-        }
+    _fetch(query);
+  }, []);
 
-        _fetch(query);
-    }, []);
+  useEffect(() => {
+    if (!query || query.length < 3) {
+      return;
+    }
 
-    useEffect(() => {
-        if (!query || query.length < 3) {
-            return
-        }
-    
-        fetch(query)
-    }, [fetch, query]);
+    fetch(query);
+  }, [fetch, query]);
 
-    return { fetch, reset, results }
+  return { fetch, reset, results };
 }

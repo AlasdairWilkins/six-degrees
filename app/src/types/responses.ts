@@ -1,9 +1,9 @@
 export type InvalidLink = {
-    movieId: number,
-    personId: number,
-}
+  movieId: number;
+  personId: number;
+};
 
 export type SubmissionResponse = {
-    isValid: boolean;
-    invalidLinks:InvalidLink[]; 
-}
+  isValid: boolean;
+  invalidLinks: InvalidLink[];
+};
