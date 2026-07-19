@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
 import useTmdbMovieSearch from "../hooks/useTmdbSearch";
-import MovieSearchEntry from "./MovieSearchEntry";
 import BaseSearchAutocomplete from "./BaseSearchAutocomplete";
 import type {Movie} from '../types/tmdb';
 import type { SearchAutocompleteProps } from "../types/sharedProps";
@@ -30,6 +29,18 @@ export default (baseAutoCompleteProps: SearchAutocompleteProps<Movie>) => {
 
     const formatSelection = useCallback((movie: Movie) => movie.title, []);
 
+    const formatSearchEntry = useCallback((movie: Movie) => {
+        const getReleaseDate = (movie: Movie) => {
+            if (!movie.release_date || movie.release_date.length < 4) {
+                return 'No known release date'
+            }
+
+            return movie.release_date.slice(0, 4)
+        }
+        
+        return `${movie.title} (${getReleaseDate(movie)})`
+    }, [])
+
     return (
         <BaseSearchAutocomplete
             {...baseAutoCompleteProps}
@@ -38,8 +49,7 @@ export default (baseAutoCompleteProps: SearchAutocompleteProps<Movie>) => {
             reset={reset}
             results={primaryResults}
             formatSelection={formatSelection}
-            // formatEntry={formatEntry}
-            searchEntryComponent={MovieSearchEntry}
+            formatSearchEntry={formatSearchEntry}
         />
     )
 }

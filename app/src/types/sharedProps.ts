@@ -2,13 +2,6 @@ import type {Movie, Person} from '../types/tmdb'
 
 export type Chain = [Movie | null, Person | null];
 
-
-export type SearchEntryProps<SearchType> = {
-    disabled: boolean;
-    result: SearchType;
-    onSelect: (selection: SearchType | null) => void;
-};
-
 export type SearchAutocompleteProps<SearchType> = {
     value: SearchType | null;
     disabled: boolean;

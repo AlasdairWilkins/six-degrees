@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 
-import type {Movie, Person} from '../types/tmdb';
-import type { SearchEntryProps } from "../types/sharedProps";
+import type { Movie, Person } from '../types/tmdb';
+import SearchEntry from "./SearchEntry";
 
 import './BaseSearchAutocomplete.css';
 
@@ -13,19 +13,19 @@ type Props<SearchType> = {
     results: SearchType[];
     onSelect?: (selection: SearchType | null) => void
     formatSelection: (selection: SearchType) => string
-    searchEntryComponent: React.ComponentType<SearchEntryProps<SearchType>>;
+    formatSearchEntry: (entry: SearchType) => string
     value: SearchType | null;
     usedIds: Set<number>;
 }
 
-export default function BaseSearchAutocomplete<SearchType extends Movie | Person> ({
+export default function BaseSearchAutocomplete<SearchType extends Movie | Person>({
     query,
     setQuery,
     onSelect: onSelectProp,
     reset,
     results,
     formatSelection,
-    searchEntryComponent: SearchEntry,
+    formatSearchEntry,
     disabled,
     value,
     usedIds,
@@ -58,11 +58,16 @@ export default function BaseSearchAutocomplete<SearchType extends Movie | Person
             />
             <ul>
                 {
-                results.map(result => (
-                    <SearchEntry key={result.id} disabled={usedIds.has(result.id)} onSelect={onSelect} result={result} />
-                )
-                )
-            }
+                    results.map(result => (
+                        <SearchEntry 
+                            key={result.id} 
+                            disabled={usedIds.has(result.id)} 
+                            onSelect={onSelect} 
+                            entry={result} 
+                            format={formatSearchEntry} 
+                        />
+                    ))
+                }
             </ul>
         </div>
     )
