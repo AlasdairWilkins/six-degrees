@@ -10,22 +10,27 @@ interface SearchTypeMapping {
 }
 
 type Params<SearchType> = {
-    query: string,
+    query?: string,
     endpoint:{
         [K in keyof SearchTypeMapping]: SearchType extends SearchTypeMapping[K] ? K : never;
     }[keyof SearchTypeMapping];
 }
 
+type Return<SearchType> = {
+    fetch: (query: string) => void, 
+    reset: () => void, 
+    results: SearchType[]
+}
 
-export default function useTmdbSearch<SearchType extends Movie | Person> ({ endpoint, query }: Params<SearchType>): {reset: () => void, results: SearchType[]} {
+export default function useTmdbSearch<SearchType extends Movie | Person> ({ endpoint, query }: Params<SearchType>): Return<SearchType>  {
     const [results, setResults] = useState<SearchType[]>([]);
 
     const reset = useCallback(() => {
         setResults([])
     }, []);
 
-    useEffect(() => {
-        const fetchTmdbSearch = async (query: string) => {
+    const fetch = useCallback((query: string) => {
+        const _fetch = async (query: string) => {
             try {
                 const response = await fetchHandler(`/api/tmdb/search/${endpoint}?${qs.stringify({ query })}`)
                  const data = await response.json();
@@ -34,14 +39,18 @@ export default function useTmdbSearch<SearchType extends Movie | Person> ({ endp
             } catch (error) {
                 console.error(error)
             }
-        };
+        }
 
-        if (query.length < 3) {
+        _fetch(query);
+    }, []);
+
+    useEffect(() => {
+        if (!query || query.length < 3) {
             return
         }
     
-        fetchTmdbSearch(query)
-    }, [query]);
+        fetch(query)
+    }, [fetch, query]);
 
-    return { reset, results }
+    return { fetch, reset, results }
 }

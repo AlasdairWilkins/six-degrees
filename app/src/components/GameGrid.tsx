@@ -1,12 +1,12 @@
-import {useCallback, useEffect, useMemo, useState} from 'react'
+import {useCallback, useMemo, useState} from 'react'
 import type { Dispatch, SetStateAction } from 'react';
-import useTmdbSearch from '../hooks/useTmdbSearch'
 import ChainRow from './ChainRow';
 
 import fetchHandler from '../api/fetchHandler';
+import { useHandleUsedIds } from '../hooks/useHandleUsedIds';
 import type {Movie, Person} from '../types/tmdb'
 import type { SubmissionResponse } from '../types/responses';
-import type { CompletedChain } from '../types/sharedProps';
+import type { Chain, CompletedChain } from '../types/sharedProps';
 
 function assertNonNull<T>(value: T | null, message: string): asserts value is T {
     if (value === null) {
@@ -14,60 +14,21 @@ function assertNonNull<T>(value: T | null, message: string): asserts value is T 
     }
 }
 
-const targetActorId = 4724 // Kevin Bacon's TMDB id
-
-type Chain = [Movie | null, Person | null];
 
 type Props = {
-    initialActorName: string;
+    initialActor: Person;
+    targetActorId: number;
+    completedChains: CompletedChain[],
     setCompletedChains: Dispatch<SetStateAction<CompletedChain[]>>
     reset: () => void;
 }
 
-export default ({initialActorName, setCompletedChains, reset}: Props) => {
-    const [initialActor, setInitialActor] = useState<Person | null>(null)
-
-    const {results} = useTmdbSearch<Person>({endpoint: 'person', query: initialActorName})
-
+export default ({initialActor, targetActorId, completedChains, setCompletedChains, reset}: Props) => {
     const [chains, setChains] = useState<Chain[]>([[null, null]]);
     const [submissionResult, setSubmissionResult] = useState<SubmissionResponse | null>(null)
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
-    const [usedMovieIds, setUsedMovieIds] = useState<Set<number>>(new Set())
-    const [usedPersonIds, setUsedPersonIds] = useState<Set<number>>(new Set())
-
-    const handleUsedIds = useCallback((method: 'add' | 'delete', [movie, person]: Chain) => {
-        if (movie?.id) {
-            setUsedMovieIds(prev => {
-                const updated = new Set(prev);
-                updated[method](movie.id);
-                return updated;
-            })
-        }
-        if (person?.id) {
-            setUsedPersonIds(prev => {
-                const updated = new Set(prev);
-                updated[method](person.id);
-                return updated;
-            })
-        }
-    }, []);
-
-    const insertUsedIds = useCallback((chain: Chain) => handleUsedIds('add', chain), [handleUsedIds]);
-    const removeUsedIds = useCallback((chain: Chain) => handleUsedIds('delete', chain), [handleUsedIds]);
-    const updateUsedIds = useCallback((oldChain: Chain, newChain: Chain) => {
-        removeUsedIds(oldChain);
-        insertUsedIds(newChain);
-    }, [removeUsedIds, insertUsedIds]);
-
-    useEffect(() => {
-        if (!results.length) {
-            return
-        }
-
-        setInitialActor(results[0]);
-        setUsedPersonIds(new Set([results[0].id]))
-    }, [results])
+    const {insertUsedIds, removeUsedIds, updateUsedIds, usedIds: {movie: usedMovieIds, person: usedPersonIds}} = useHandleUsedIds({initialActor, completedChains})
 
     const onSubmit = useCallback(() => {
         setIsSubmitted(true);
@@ -150,12 +111,6 @@ export default ({initialActorName, setCompletedChains, reset}: Props) => {
     const canSubmit = useMemo(() => {
         return chains.flat().every(value => !!value) && chains[chains.length - 1][1]?.id === targetActorId
     }, [chains])
-
-    if (!initialActor) {
-        return (
-            <div>Loading game...</div>
-        )
-    }
 
     return (
         <div>
